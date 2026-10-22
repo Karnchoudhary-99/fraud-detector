@@ -1,9 +1,10 @@
 """Unsupervised anomaly detectors for the cold-start case.
 
 Both detectors share one interface: ``fit(X)`` learns the normal
-profile, ``score(X)`` returns an anomaly score in [0, 1] where higher
-means more anomalous, and ``predict(X)`` flags the top ``contamination``
-fraction of scores.  Using a quantile threshold (rather than a fixed
+profile, ``score(X)`` returns an anomaly score where higher means more
+anomalous (isolation scores are scaled to [0, 1]; z-scores are mean
+absolute z-values and are unbounded), and ``predict(X)`` flags the top
+``contamination`` fraction of scores.  Using a quantile threshold (rather than a fixed
 cut-off) keeps the flagged share stable as the score scale changes.
 
 * :class:`ZScoreDetector` — per-feature standardisation fitted on the
