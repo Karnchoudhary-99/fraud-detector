@@ -14,8 +14,16 @@ import numpy as np
 
 from fraud_detector import __version__
 from fraud_detector.anomalies import IsolationForestDetector, ZScoreDetector
+from fraud_detector.classifiers import CLASSIFIER_NAMES
+from fraud_detector.evaluation import evaluate_predictions
 from fraud_detector.features import FeatureEngineer
+from fraud_detector.persistence import save_model
+from fraud_detector.reporting import format_report
+from fraud_detector.splitting import stratified_split
+from fraud_detector.thresholds import best_f1_threshold
+from fraud_detector.training import train_supervised
 from fraud_detector.transactions import (
+    TransactionDataset,
     load_transactions,
     make_synthetic_transactions,
     save_transactions,
@@ -56,6 +64,32 @@ def _cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _train_and_evaluate(dataset: TransactionDataset, model_name: str,
+                        test_size: float, seed: int):
+    """Split, train, and score one classifier on the holdout split."""
+    if dataset.labels is None:
+        raise ValueError("supervised commands require a labelled CSV")
+    train, test = stratified_split(dataset, test_size=test_size, seed=seed)
+    model = train_supervised(train, model_name)
+    report = evaluate_predictions(
+        test.labels, model.predict(test), model.predict_proba(test)
+    )
+    threshold = best_f1_threshold(test.labels, model.predict_proba(test))
+    return model, report, threshold
+
+
+def _cmd_train(args: argparse.Namespace) -> int:
+    dataset = load_transactions(args.csv)
+    model, report, threshold = _train_and_evaluate(
+        dataset, args.model, args.test_size, args.seed
+    )
+    print(format_report(args.model, report, threshold))
+    if args.out:
+        save_model(model, args.out)
+        print(f"saved model to {args.out}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fraud-detector")
     parser.add_argument("--version", action="store_true")
@@ -72,6 +106,15 @@ def build_parser() -> argparse.ArgumentParser:
     score.add_argument("--contamination", type=float, default=0.02)
     score.add_argument("--top", type=int, default=10)
     score.set_defaults(func=_cmd_score)
+    train = sub.add_parser("train", help="train a supervised classifier")
+    train.add_argument("--csv", required=True)
+    train.add_argument("--model", choices=sorted(CLASSIFIER_NAMES),
+                       default="logistic")
+    train.add_argument("--test-size", type=float, default=0.25)
+    train.add_argument("--seed", type=int, default=42)
+    train.add_argument("--out", default=None,
+                       help="optional path to save the trained model")
+    train.set_defaults(func=_cmd_train)
     return parser
 
 
