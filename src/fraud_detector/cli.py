@@ -103,6 +103,24 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_compare(args: argparse.Namespace) -> int:
+    dataset = load_transactions(args.csv)
+    rows = []
+    for name in sorted(CLASSIFIER_NAMES):
+        _, report, _ = _train_and_evaluate(
+            dataset, name, args.test_size, args.seed
+        )
+        rows.append((name, report))
+    rows.sort(key=lambda item: (item[1].pr_auc is None, -(item[1].pr_auc or 0.0)))
+    print("model  precision  recall  f1  pr_auc  roc_auc  (sorted by PR-AUC)")
+    for name, report in rows:
+        print(f"{name:<18} {report.precision:.4f}  {report.recall:.4f}  "
+              f"{report.f1:.4f}  "
+              f"{report.pr_auc if report.pr_auc is not None else float('nan'):.4f}  "
+              f"{report.roc_auc if report.roc_auc is not None else float('nan'):.4f}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fraud-detector")
     parser.add_argument("--version", action="store_true")
@@ -133,6 +151,12 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--model-file", required=True)
     evaluate.add_argument("--csv", required=True)
     evaluate.set_defaults(func=_cmd_evaluate)
+    compare = sub.add_parser("compare",
+                             help="compare all classifiers on one holdout split")
+    compare.add_argument("--csv", required=True)
+    compare.add_argument("--test-size", type=float, default=0.25)
+    compare.add_argument("--seed", type=int, default=42)
+    compare.set_defaults(func=_cmd_compare)
     return parser
 
 

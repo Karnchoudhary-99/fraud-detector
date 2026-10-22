@@ -20,6 +20,14 @@ def test_cli_evaluate_scores_saved_model_on_labelled_csv(tmp_path, capsys):
     assert "confusion:" in captured
 
 
+def test_cli_compare_lists_both_classifiers_sorted(tmp_path, capsys):
+    csv = _sample_csv(tmp_path)
+    assert main(["compare", "--csv", str(csv)]) == 0
+    captured = capsys.readouterr().out
+    assert "logistic" in captured and "gradient-boosting" in captured
+    assert "sorted by PR-AUC" in captured
+
+
 def test_cli_train_reports_holdout_and_saves_model(tmp_path, capsys):
     csv = _sample_csv(tmp_path)
     out = tmp_path / "model.pkl"
