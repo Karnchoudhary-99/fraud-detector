@@ -10,9 +10,9 @@ evaluation that respects the extreme class imbalance of fraud data.
 - [x] Project scaffold (packaging, README, CI)
 - [x] Transaction dataset loading + feature engineering
 - [x] Anomaly detection (isolation forest, z-score baselines)
-- [ ] Supervised classifiers (logistic regression, gradient boosting)
-- [ ] Imbalance-aware evaluation (precision/recall/F1, PR-AUC)
-- [ ] CLI + demo, README, then public
+- [x] Supervised classifiers (logistic regression, gradient boosting)
+- [x] Imbalance-aware evaluation (precision/recall/F1, PR-AUC)
+- [ ] Self-review checklist, then public
 
 ## Usage
 
@@ -46,6 +46,38 @@ Both detectors flag the top `contamination` fraction (default 2%) of
 scores. On the bundled sample, isolation forest puts 13/20 true fraud
 rows in its top 20 and z-score puts 11/20 — honest baselines on
 deliberately overlapping synthetic data, not a clean separation.
+
+## Supervised classifiers
+
+Once labels exist, train a classifier on a stratified split (the
+feature engineer is fitted on the training split only, so no scaler
+leakage into the holdout), evaluate it with fraud-first metrics, and
+optionally save it for later scoring:
+
+```bash
+fraud-detector train --csv data/sample_transactions.csv --model logistic --out models/logistic.pkl
+fraud-detector evaluate --model-file models/logistic.pkl --csv data/sample_transactions.csv
+fraud-detector compare --csv data/sample_transactions.csv
+python examples/supervised_demo.py
+```
+
+Evaluation reports precision/recall/F1 for the fraud class, the
+confusion matrix, ROC-AUC, and PR-AUC — the headline ranking metric,
+since ROC-AUC is flattered by the huge number of easy true negatives
+at 2% fraud. `best_f1_threshold` sweeps the decision threshold on the
+holdout and reports the F1-optimal point instead of assuming 0.5.
+
+Baseline on the bundled sample (250-row holdout, 5 fraud rows — small,
+so read the rates, not just the headline):
+
+| model | precision | recall | F1 | PR-AUC |
+| --- | --- | --- | --- | --- |
+| logistic | 0.833 | 1.000 | 0.909 | 0.967 |
+| gradient-boosting | 1.000 | 0.400 | 0.571 | 0.794 |
+
+Threshold tuning lifts gradient boosting's F1 to 0.667 (threshold
+0.01) — a reminder that at this imbalance the threshold matters as
+much as the model.
 
 ## License
 
