@@ -17,7 +17,7 @@ from fraud_detector.anomalies import IsolationForestDetector, ZScoreDetector
 from fraud_detector.classifiers import CLASSIFIER_NAMES
 from fraud_detector.evaluation import evaluate_predictions
 from fraud_detector.features import FeatureEngineer
-from fraud_detector.persistence import save_model
+from fraud_detector.persistence import load_model, save_model
 from fraud_detector.reporting import format_report
 from fraud_detector.splitting import stratified_split
 from fraud_detector.thresholds import best_f1_threshold
@@ -90,6 +90,19 @@ def _cmd_train(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_evaluate(args: argparse.Namespace) -> int:
+    model = load_model(args.model_file)
+    dataset = load_transactions(args.csv)
+    if dataset.labels is None:
+        raise ValueError("evaluate requires a labelled CSV")
+    report = evaluate_predictions(
+        dataset.labels, model.predict(dataset), model.predict_proba(dataset)
+    )
+    threshold = best_f1_threshold(dataset.labels, model.predict_proba(dataset))
+    print(format_report(model.name, report, threshold))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fraud-detector")
     parser.add_argument("--version", action="store_true")
@@ -115,6 +128,11 @@ def build_parser() -> argparse.ArgumentParser:
     train.add_argument("--out", default=None,
                        help="optional path to save the trained model")
     train.set_defaults(func=_cmd_train)
+    evaluate = sub.add_parser("evaluate",
+                              help="score a saved model on a labelled CSV")
+    evaluate.add_argument("--model-file", required=True)
+    evaluate.add_argument("--csv", required=True)
+    evaluate.set_defaults(func=_cmd_evaluate)
     return parser
 
 

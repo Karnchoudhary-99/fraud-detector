@@ -8,6 +8,18 @@ def _sample_csv(tmp_path, n=400):
     return path
 
 
+def test_cli_evaluate_scores_saved_model_on_labelled_csv(tmp_path, capsys):
+    csv = _sample_csv(tmp_path)
+    out = tmp_path / "model.pkl"
+    assert main(["train", "--csv", str(csv), "--model", "logistic",
+                 "--out", str(out)]) == 0
+    capsys.readouterr()
+    assert main(["evaluate", "--model-file", str(out), "--csv", str(csv)]) == 0
+    captured = capsys.readouterr().out
+    assert "model=logistic rows=400" in captured
+    assert "confusion:" in captured
+
+
 def test_cli_train_reports_holdout_and_saves_model(tmp_path, capsys):
     csv = _sample_csv(tmp_path)
     out = tmp_path / "model.pkl"
