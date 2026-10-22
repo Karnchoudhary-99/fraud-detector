@@ -10,3 +10,4 @@ jobs:
           python-version: "3.12"
       - run: pip install -e . pytest
       - run: python -m pytest -q
+      - run: python examples/demo.py && python examples/explain.py
