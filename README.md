@@ -12,7 +12,7 @@ evaluation that respects the extreme class imbalance of fraud data.
 - [x] Anomaly detection (isolation forest, z-score baselines)
 - [x] Supervised classifiers (logistic regression, gradient boosting)
 - [x] Imbalance-aware evaluation (precision/recall/F1, PR-AUC)
-- [ ] Self-review checklist, then public
+- [x] Self-review checklist, then public
 
 ## Usage
 
