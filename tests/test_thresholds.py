@@ -13,7 +13,8 @@ def test_tuning_beats_default_threshold_on_skewed_scores():
     choice = best_f1_threshold(y_true, y_proba)
     assert choice.threshold < 0.5
     assert choice.recall == 1.0
-    assert choice.f1 == pytest.approx(0.8, abs=0.01)
+    # Threshold between 0.30 and 0.42 separates perfectly: TP=4, FP=0.
+    assert choice.f1 == 1.0
 
 
 def test_tuning_rejects_bad_inputs():
