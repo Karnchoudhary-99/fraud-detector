@@ -47,6 +47,29 @@ scores. On the bundled sample, isolation forest puts 13/20 true fraud
 rows in its top 20 and z-score puts 11/20 — honest baselines on
 deliberately overlapping synthetic data, not a clean separation.
 
+## Why was this flagged?
+
+A score alone does not help an analyst, so `score --explain` prints
+the most deviant features of each top-flagged row (standardised
+deviations from the typical transaction), and `ZScoreDetector.
+feature_contributions` exposes the same per-feature values
+programmatically:
+
+```bash
+fraud-detector score --csv data/sample_transactions.csv --model zscore --top 3 --explain
+python examples/explain.py
+```
+
+```
+row 914 (score 5.824): amount_z +10.16 SD above typical, log_amount +3.74 SD above typical, V8 +3.57 SD above typical
+row 201 (score 5.477): amount_z +10.59 SD above typical, log_amount +3.79 SD above typical, V4 +2.04 SD above typical
+```
+
+The explanations describe the row, not the detector's internals, so
+they apply to both detectors. Note the honest caveat: the synthetic
+generator makes fraud amount-driven, so `amount_z` dominates these
+examples — on real data the top contributors would vary by row.
+
 ## Supervised classifiers
 
 Once labels exist, train a classifier on a stratified split (the
