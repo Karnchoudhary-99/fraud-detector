@@ -66,6 +66,17 @@ class ZScoreDetector:
             raise RuntimeError("ZScoreDetector must be fitted before predicting")
         return (self.score(X) >= self._threshold).astype(int)
 
+    def feature_contributions(self, X: np.ndarray) -> np.ndarray:
+        """Absolute per-feature z-values, i.e. what drives each score.
+
+        Row ``i``'s score is the mean of its ``top_k`` largest values
+        here, so the largest entries of a row are exactly the features
+        that flagged it.  Raises if the detector is not fitted.
+        """
+        if self._means is None or self._stds is None:
+            raise RuntimeError("ZScoreDetector must be fitted before scoring")
+        return np.abs((np.asarray(X, dtype=float) - self._means) / self._stds)
+
 
 class IsolationForestDetector:
     """Isolation-forest detector with [0, 1] scores."""
