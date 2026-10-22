@@ -16,6 +16,7 @@ from fraud_detector import __version__
 from fraud_detector.anomalies import IsolationForestDetector, ZScoreDetector
 from fraud_detector.classifiers import CLASSIFIER_NAMES
 from fraud_detector.evaluation import evaluate_predictions
+from fraud_detector.explanations import explain_flags, format_explanation
 from fraud_detector.features import FeatureEngineer
 from fraud_detector.persistence import load_model, save_model
 from fraud_detector.reporting import format_report
@@ -61,6 +62,13 @@ def _cmd_score(args: argparse.Namespace) -> int:
     for rank, idx in enumerate(order[: args.top], start=1):
         print(f"{rank:>4} {idx:>4} {scores[idx]:.3f}  "
               f"{dataset.amounts[idx]:>8.2f}  {dataset.times[idx]:>8.0f}")
+    if args.explain:
+        # X is already standardised by FeatureEngineer, so its values are
+        # deviations from typical in SDs — the explanation's input.
+        print("why flagged:")
+        for explanation in explain_flags(X, scores, engineer.output_names,
+                                         top_n_rows=args.top):
+            print(f"  {format_explanation(explanation)}")
     return 0
 
 
@@ -136,6 +144,8 @@ def build_parser() -> argparse.ArgumentParser:
     score.add_argument("--model", choices=sorted(DETECTORS), default="isolation")
     score.add_argument("--contamination", type=float, default=0.02)
     score.add_argument("--top", type=int, default=10)
+    score.add_argument("--explain", action="store_true",
+                       help="print the top deviating features per flagged row")
     score.set_defaults(func=_cmd_score)
     train = sub.add_parser("train", help="train a supervised classifier")
     train.add_argument("--csv", required=True)
